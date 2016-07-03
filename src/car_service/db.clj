@@ -14,8 +14,8 @@
 
 (defn load-config
   "Configure migrations connection and folder."
-  []
-  {:datastore  (jdbc/sql-database db-connection)
+  [connection]
+  {:datastore  (jdbc/sql-database connection)
    :migrations (jdbc/load-resources "migrations")})
 
 (defn migrate

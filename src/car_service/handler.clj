@@ -1,7 +1,7 @@
 (ns car-service.handler
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
-            [ring.util.response :refer [redirect response]]
+            [ring.util.response :refer [redirect response status]]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.middleware.reload :refer [wrap-reload]]
             [ring.middleware.json :refer [wrap-json-body wrap-json-response wrap-json-params]]
@@ -19,9 +19,11 @@
 
 (defn unsign-token [request]
   (let [{:keys [token] :or {token ""}} (:params request)]
+    (if token
       (try (:user (jwt/unsign token secret))
            (catch clojure.lang.ExceptionInfo e
-             false))))
+             false))
+      false)))
 
 (defn access-token [request]
   (let [{:keys [email password]} (:params request)
@@ -34,8 +36,12 @@
 
 (defn register [request]
   (let [{:keys [name email password]} (:params request)]
-    (db/create-user name email (encrypt password))
-    (response {:status "success"})))
+    (try (do (db/create-user name email (encrypt password))
+             (response {:status "success"
+                        :token (ch/encode (jwt/sign {:user email} secret))}))
+         (catch org.postgresql.util.PSQLException e
+           (if (= (.getErrorCode e) 0)
+             (response {:message "User already exists."}))))))
 
 (defn get-cars [request]
   (let [email (unsign-token request)
@@ -51,14 +57,16 @@
     (if email
       (-> (response (db/get-user-cars email page per-page sort-by dir))
           (update :session assoc :sort-by sort-by :dir dir))
-      (response {:status "error" :message "invalid token"}))))
+      (-> (response {:status "error" :message "invalid token"})
+          (status 403)))))
 
 (defn new-car [request]
   (let [email (unsign-token request)
         car (select-keys (:params request) [:brand :model :mileage :year :photo])]
     (if email
       (db/new-car (assoc car :user email))
-      (response {:status "error" :message "invalid token"}))))
+      (-> (response {:status "error" :message "invalid token"})
+          (status 403)))))
 
 (defn update-car [request]
   (let [params (:params request)
@@ -67,20 +75,23 @@
       (do (db/update-car (:id params) email
                          (select-keys params [:brand :model :mileage :year :photo]))
           (response {:status "updated" :id (:id params)}))
-      (response {:status "error" :message "not authenticated"}))))
+      (-> (response {:status "error" :message "not authenticated"})
+          (status 403)))))
 
 (defn delete-car [request]
   (let [id (:id (:params request))
         email (unsign-token request)]
     (if email
       (db/delete-car id email)
-      (response {:status "error" :message "not authenticated"}))))
+      (-> (response {:status "error" :message "not authenticated"})
+          (status 403)))))
 
 (defn overall [request]
   (let [auth? (unsign-token request)]
     (if auth?
       (response (db/overall))
-      (response {:status "error" :message "not authenticated"}))))
+      (-> (response {:status "error" :message "not authenticated"})
+          (status 403)))))
 
 (defroutes app-routes
   (GET "/access_token" [] access-token)
