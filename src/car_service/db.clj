@@ -34,11 +34,31 @@
 ;; Korma database connection
 (kdb/defdb db db-connection)
 
-(defentity users)
+(declare users cars repairs)
 
-(defentity cars)
+(defentity cars
+  (kc/belongs-to users {:fk :user})
+  (kc/has-many repairs {:fk :id}))
 
-(defentity repairs)
+(defentity cars-with-repairs
+  (kc/table
+   (kc/subselect cars
+                 (kc/fields :brand :model :year :user
+                            (kc/raw "sum(repairs.price) OVER (PARTITION BY repairs.car)  AS \"totalExpenses\""))
+                 (kc/join repairs (= :repairs.car :id)))
+   :vehicles)
+  (kc/entity-fields :brand :model :year :totalExpenses)
+
+  (kc/belongs-to users {:fk :user}))
+
+(defentity users
+  (kc/pk :email)
+  (kc/has-many cars-with-repairs {:fk :user})
+  (kc/has-many cars {:fk :user}))
+
+(defentity repairs
+  (kc/entity-fields :price)
+  (kc/belongs-to cars {:fk :car}))
 
 (defn create-user [name email password]
   (insert users
@@ -67,9 +87,11 @@
              (kc/set-fields data)
              (kc/where {:id id :user email})))
 
-(defn owerall []
+(defn overall []
+  (let [cars (select cars (kc/fields :brand :model :year
+                                     (kc/raw "sum(repairs.price) OVER (PARTITION BY repairs.car)  AS totalExpenses"))
+                     (kc/join repairs (= :repairs.car :id)))])
   (select users
-          (kc/fields :name :cars.brand :cars.model :cars.year
-                     (kc/raw "sum(repairs.price) OVER (PARTITION BY repairs.car)  AS totalExpenses"))
-          (kc/join cars (= :cars.user :email))
-          (kc/join repairs (= :repairs.car :cars.id))))
+          (kc/with cars-with-repairs)
+          (kc/fields :name :email)
+          ))

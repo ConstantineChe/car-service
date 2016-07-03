@@ -68,10 +68,10 @@
       (db/delete-car id email)
       (response {:status "error" :message "not authenticated"}))))
 
-(defn owerall [request]
+(defn overall [request]
   (let [auth? (unsign-token request)]
     (if auth?
-      (response (db/owerall))
+      (response (db/overall))
       (response {:status "error" :message "not authenticated"}))))
 
 (defroutes app-routes
@@ -81,7 +81,7 @@
   (POST "/cars" [] new-car)
   (PUT "/cars" [] update-car)
   (DELETE "/cars" [] delete-car)
-  (GET "/" [] owerall)
+  (GET "/" [] overall)
   (route/not-found "Not Found"))
 
 
