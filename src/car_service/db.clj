@@ -71,10 +71,11 @@
   (select users
           (kc/where {:email email})))
 
-(defn get-user-cars [email page per-page]
+(defn get-user-cars [email page per-page order dir]
   (let [offset (* per-page (dec page))]
     (select cars
             (kc/where {:user email})
+            (kc/order order dir)
             (kc/offset offset)
             (kc/limit per-page))))
 

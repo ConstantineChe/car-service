@@ -39,10 +39,18 @@
 
 (defn get-cars [request]
   (let [email (unsign-token request)
-        page (if-let [page (-> request :params :page)] (Integer. page) 1)
-        per-page (if-let [per-page (-> request :params :per-page)] (Integer. per-page) 10)]
+        {:keys [page per-page sort-by dir]} (:params request)
+        page (if page (Integer. page) 1)
+        per-page (if per-page (Integer. per-page) 10)
+        sort-by (if-not sort-by
+                  (if-let [last-sort (-> request :session :sort-by)] last-sort :id)
+                  (if (#{"mileage" "totalExpenses"} sort-by) (keyword sort-by) :id))
+        dir (if-not dir
+              (if-let [last-dir (-> request :session :dir)] last-dir :ASC)
+              (if (#{"ASC" "DESC"} dir) (keyword dir) :ASC))]
     (if email
-      (response (db/get-user-cars email page per-page))
+      (-> (response (db/get-user-cars email page per-page sort-by dir))
+          (update :session assoc :sort-by sort-by :dir dir))
       (response {:status "error" :message "invalid token"}))))
 
 (defn new-car [request]
