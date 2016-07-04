@@ -104,12 +104,14 @@
              (kc/set-fields data)
              (kc/where {:id id :user email})))
 
-(defn get-repairs [email]
+(defn get-repairs [email sort-by dir]
+  (prn sort-by dir)
   (select repairs
           (kc/fields :id :car :date :price :service_description :cars.brand :cars.model)
           (kc/join cars (= :cars.id :car))
           (kc/join users (= :users.email :cars.user))
           (kc/where {:users.email email})
+          (kc/order sort-by dir)
           ))
 
 (defn get-car [id]

@@ -114,6 +114,12 @@
               {:id 2 :car 2 :price 100.0 :service_description "test desc" :date "2011-02-08" :brand "KIA" :model "SPORTAGE"}
               {:id 3 :car 2 :price 150.0 :service_description "test desc2" :date "2011-03-08" :brand "KIA" :model "SPORTAGE"}]
              (ch/parse-string (:body (app (mock/request :get "/repairs" {:token token}))) true)))
+      (is (= [{:id 3 :car 2 :price 150.0 :service_description "test desc2" :date "2011-03-08" :brand "KIA" :model "SPORTAGE"}
+              {:id 2 :car 2 :price 100.0 :service_description "test desc" :date "2011-02-08" :brand "KIA" :model "SPORTAGE"}
+              {:id 1 :car 1 :price 100.0 :service_description "test desc" :date "2011-01-07" :brand "AUDI" :model "A8"}]
+             (ch/parse-string (:body (app (mock/request :get "/repairs" {:token token
+                                                                         :sort-by "date"
+                                                                         :dir "DESC"}))) true)))
       (is (= [{:id 2, :car 2, :date "2011-02-08", :price 100.0, :service_description "test desc"}
               {:id 3, :car 2, :date "2011-03-08", :price 150.0, :service_description "test desc2"}]
              (ch/parse-string (:body (app (mock/request :get "/repairs/2" {:token token}))) true))))

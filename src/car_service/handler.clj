@@ -86,9 +86,12 @@
           (status 403)))))
 
 (defn get-repairs [request]
-  (let [email (unsign-token request)]
+  (let [email (unsign-token request)
+        {:keys [sort-by dir]} (:params request)
+        sort-by (if (#{"date" "price"} sort-by) (keyword sort-by) :id)
+        dir (if (#{"ASC" "DESC"} dir) (keyword dir) :ASC)]
     (if email
-      (db/get-repairs email)
+      (db/get-repairs email sort-by dir)
       (-> (response {:status "error" :message "not authenticated"})
           (status 403)))    ))
 
