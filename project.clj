@@ -14,9 +14,12 @@
                  [ragtime "0.5.2"]
                  [cheshire "5.6.3"]
                  [org.clojure/java.jdbc "0.3.7"]
-                 [postgresql/postgresql "9.1-901-1.jdbc4"]]
+                 [postgresql/postgresql "9.1-901-1.jdbc4"]
+                 [clj-time "0.12.0"]
+                 [midje "1.8.3"]]
   :plugins [[lein-ring "0.9.7"]
-            [lein-environ "1.0.3"]]
+            [lein-environ "1.0.3"]
+            [lein-midje "3.0.0"]]
   :ring {:handler car-service.handler/app}
   :aliases {"migrate"  ["run" "-m" "car-service.db/migrate"]
             "rollback" ["run" "-m" "car-service.db/rollback"]}

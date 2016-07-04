@@ -28,7 +28,6 @@
 (defn access-token [request]
   (let [{:keys [email password]} (:params request)
         user (first (db/get-user email))]
-    (prn email password user)
     (if (check password (:password user))
       (response {:token (ch/encode (jwt/sign {:user (:email user)} secret))})
       (response {:status "error"
@@ -45,7 +44,7 @@
 
 (defn get-cars [request]
   (let [email (unsign-token request)
-        {:keys [page per-page sort-by dir]} (:params request)
+        {:keys [page per-page sort-by dir repaired-from repaired-to]} (:params request)
         page (if page (Integer. page) 1)
         per-page (if per-page (Integer. per-page) 10)
         sort-by (if-not sort-by
@@ -86,6 +85,29 @@
       (-> (response {:status "error" :message "not authenticated"})
           (status 403)))))
 
+(defn get-repairs [request]
+  (let [email (unsign-token request)]
+    (if email
+      (db/get-repairs email)
+      (-> (response {:status "error" :message "not authenticated"})
+          (status 403)))    ))
+
+(defn new-repair [request]
+  (let [email (unsign-token request)
+        repair (select-keys (:params request) [:car :date :price :service_description])]
+    (if email
+      (db/new-repair repair)
+      (-> (response {:status "error" :message "invalid token"})
+          (status 403)))))
+
+(defn delete-repair [request]
+  (let [id (:id (:params request))
+        email (unsign-token request)]
+    (if email
+      (db/delete-repair id)
+      (-> (response {:status "error" :message "not authenticated"})
+          (status 403)))))
+
 (defn overall [request]
   (let [auth? (unsign-token request)]
     (if auth?
@@ -100,6 +122,9 @@
   (POST "/cars" [] new-car)
   (PUT "/cars" [] update-car)
   (DELETE "/cars" [] delete-car)
+  (GET "/repairs" [] get-repairs)
+  (POST "/repairs" [] new-repair)
+  (DELETE "/repairs" [] delete-repair)
   (GET "/" [] overall)
   (route/not-found "Not Found"))
 

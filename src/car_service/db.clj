@@ -3,7 +3,8 @@
           [korma.core :as kc :refer [select insert defentity]]
           [ragtime.jdbc :as jdbc]
           [ragtime.repl :as repl]
-          [environ.core :refer [env]]))
+          [environ.core :refer [env]]
+          [clj-time.format :as f]))
 
 
 ;; postgresql database connection
@@ -22,7 +23,6 @@
   "This function performs all unfinished migrations.
    It will be invoked by 'lein migrate'"
   [& args]
-  (prn (load-config))
   (repl/migrate (load-config)))
 
 (defn rollback
@@ -56,24 +56,34 @@
 
   (kc/belongs-to users {:fk :user}))
 
+(defentity repairs-full
+  (kc/table :repairs))
+
 (defentity users
   (kc/pk :email)
+  (kc/entity-fields :name :email)
   (kc/has-many cars-with-repairs {:fk :user})
   (kc/has-many cars {:fk :user})
   (kc/transform (fn [row] (dissoc row :email))))
 
+(defentity users-full
+  (kc/table :users))
 
 (defn create-user [name email password]
   (insert users
           (kc/values {:name name :email email :password password})))
 
 (defn get-user [email]
-  (select users
+  (select users-full
           (kc/where {:email email})))
 
 (defn get-user-cars [email page per-page order dir]
-  (let [offset (* per-page (dec page))]
+  (let [offset (* per-page (dec page))
+        order (if (= order :totalExpenses)
+                (kc/raw "(sum(repairs.price) OVER (PARTITION BY repairs.car)")
+                order)]
     (select cars
+            (kc/join repairs (= :repairs.car :id))
             (kc/where {:user email})
             (kc/order order dir)
             (kc/offset offset)
@@ -91,8 +101,22 @@
              (kc/set-fields data)
              (kc/where {:id id :user email})))
 
+(defn get-repairs [email]
+  (select repairs-full
+          (kc/join cars (= :cars.id :car))
+          (kc/join users-full (= :users.email :cars.user))
+          (kc/where {:users.email email})))
+
+
+(defn new-repair [repair]
+  (insert repairs
+          (kc/values (update-in repair [:date] #(try (f/parse (f/formatters :year-month-day)) (catch java.lang.Exception e (prn %)))))))
+
+(defn delete-repair [id]
+  (kc/delete repairs
+             (kc/where {:id id})))
+
 (defn overall []
   (select users
           (kc/with cars-with-repairs)
-          (kc/fields :name :email)
           ))
