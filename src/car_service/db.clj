@@ -51,9 +51,9 @@
 (defentity cars-with-repairs
   (kc/table
    (kc/subselect cars
+                 (kc/modifier "DISTINCT")
                  (kc/fields :id :brand :model :year :user
                             (kc/raw "sum(repairs.price) OVER (PARTITION BY repairs.car)  AS \"totalExpenses\""))
-
                  (kc/join repairs (= :repairs.car :id)))
    :vehicles)
   (kc/entity-fields [:brand :make] :model :year :totalExpenses)

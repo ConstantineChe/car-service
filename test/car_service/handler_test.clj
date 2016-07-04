@@ -92,7 +92,7 @@
     (testing "main route"
       (is (= [{:name "Tester"
                :vehicles
-               [{:make "AUDI" :model "A8" :year 2012 :totalExpenses 250.00}
+               [{:make "AUDI" :model "A8" :year 2012 :totalExpenses 100.00}
                 {:make "KIA" :model "SPORTAGE" :year 2012 :totalExpenses 250.00}]
                }]
              (ch/parse-string (:body (app (mock/request :get "/" {:token token}))) true)
