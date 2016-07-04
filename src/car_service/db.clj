@@ -44,8 +44,8 @@
   (kc/has-many repairs {:fk :id}))
 
 (defentity repairs
-  (kc/entity-fields :price)
-  (kc/belongs-to cars {:fk :car}))
+  (kc/belongs-to cars {:fk :car})
+  (kc/transform  (fn [row] (update row :date transform-date))))
 
 
 (defentity cars-with-repairs
@@ -64,6 +64,9 @@
   (kc/pk :email)
   (kc/has-many cars-with-repairs {:fk :user})
   (kc/has-many cars {:fk :user}))
+
+(defn transform-date [date]
+  (f/unparse sql-format (l/to-local-date-time date)))
 
 (defn create-user [name email password]
   (insert users
@@ -99,16 +102,26 @@
              (kc/where {:id id :user email})))
 
 (defn get-repairs [email]
-  (select (kc/transform repairs (fn [row] (update row :date #(f/unparse sql-format (l/to-local-date-time %)))))
-          (kc/fields :id :car :date :service_description :cars.brand :cars.model)
+  (select repairs
+          (kc/fields :id :car :date :price :service_description :cars.brand :cars.model)
           (kc/join cars (= :cars.id :car))
           (kc/join users (= :users.email :cars.user))
           (kc/where {:users.email email})
-))
+          ))
+
+(defn get-car [id]
+  (select cars
+          (kc/with repairs)
+          (kc/where {:id (Integer. id)})))
+
+(defn get-car-repairs [id]
+  (select repairs
+          (kc/fields :id :car :date :price :service_description)
+          (kc/join cars (= :cars.id :car))
+          (kc/where {:cars.id (Integer. id)})))
 
 
 (defn new-repair [repair]
-  (prn (:date repair))
   (insert repairs
           (kc/values (update repair :date #(kc/raw (str "'" % "'" "::date"))))))
 

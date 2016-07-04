@@ -108,6 +108,20 @@
       (-> (response {:status "error" :message "not authenticated"})
           (status 403)))))
 
+(defn get-car [id request]
+    (let [email (unsign-token request)]
+    (if email
+      (db/get-car id)
+      (-> (response {:status "error" :message "not authenticated"})
+          (status 403)))))
+
+(defn get-car-repairs [id request]
+  (let [email (unsign-token request)]
+    (if email
+      (db/get-car-repairs id)
+      (-> (response {:status "error" :message "not authenticated"})
+          (status 403)))))
+
 (defn overall [request]
   (let [auth? (unsign-token request)]
     (if auth?
@@ -119,12 +133,14 @@
   (GET "/access_token" [] access-token)
   (POST "/register" [] register)
   (GET "/cars" [] get-cars)
+  (GET "/cars/:id" [id :as request] (get-car id request))
   (POST "/cars" [] new-car)
   (PUT "/cars" [] update-car)
   (DELETE "/cars" [] delete-car)
   (GET "/repairs" [] get-repairs)
   (POST "/repairs" [] new-repair)
   (DELETE "/repairs" [] delete-repair)
+  (GET "/repairs/:id" [id :as request] (get-car-repairs id request))
   (GET "/" [] overall)
   (route/not-found "Not Found"))
 
