@@ -4,7 +4,8 @@
           [ragtime.jdbc :as jdbc]
           [ragtime.repl :as repl]
           [environ.core :refer [env]]
-          [clj-time.format :as f]))
+          [clj-time.format :as f]
+          [clj-time.local :as l]))
 
 
 ;; postgresql database connection
@@ -34,6 +35,8 @@
 ;; Korma database connection
 (kdb/defdb db db-connection)
 
+(def sql-format (f/formatters :year-month-day))
+
 (declare users cars repairs)
 
 (defentity cars
@@ -48,33 +51,26 @@
 (defentity cars-with-repairs
   (kc/table
    (kc/subselect cars
-                 (kc/fields :brand :model :year :user
+                 (kc/fields :id :brand :model :year :user
                             (kc/raw "sum(repairs.price) OVER (PARTITION BY repairs.car)  AS \"totalExpenses\""))
+
                  (kc/join repairs (= :repairs.car :id)))
    :vehicles)
   (kc/entity-fields [:brand :make] :model :year :totalExpenses)
 
   (kc/belongs-to users {:fk :user}))
 
-(defentity repairs-full
-  (kc/table :repairs))
-
 (defentity users
   (kc/pk :email)
-  (kc/entity-fields :name :email)
   (kc/has-many cars-with-repairs {:fk :user})
-  (kc/has-many cars {:fk :user})
-  (kc/transform (fn [row] (dissoc row :email))))
-
-(defentity users-full
-  (kc/table :users))
+  (kc/has-many cars {:fk :user}))
 
 (defn create-user [name email password]
   (insert users
           (kc/values {:name name :email email :password password})))
 
 (defn get-user [email]
-  (select users-full
+  (select users
           (kc/where {:email email})))
 
 (defn get-user-cars [email page per-page order dir]
@@ -85,6 +81,7 @@
     (select cars
             (kc/join repairs (= :repairs.car :id))
             (kc/where {:user email})
+            (kc/group :id)
             (kc/order order dir)
             (kc/offset offset)
             (kc/limit per-page))))
@@ -102,21 +99,25 @@
              (kc/where {:id id :user email})))
 
 (defn get-repairs [email]
-  (select repairs-full
+  (select (kc/transform repairs (fn [row] (update row :date #(f/unparse sql-format (l/to-local-date-time %)))))
+          (kc/fields :id :car :date :service_description :cars.brand :cars.model)
           (kc/join cars (= :cars.id :car))
-          (kc/join users-full (= :users.email :cars.user))
-          (kc/where {:users.email email})))
+          (kc/join users (= :users.email :cars.user))
+          (kc/where {:users.email email})
+))
 
 
 (defn new-repair [repair]
+  (prn (:date repair))
   (insert repairs
-          (kc/values (update-in repair [:date] #(try (f/parse (f/formatters :year-month-day)) (catch java.lang.Exception e (prn %)))))))
+          (kc/values (update repair :date #(kc/raw (str "'" % "'" "::date"))))))
 
 (defn delete-repair [id]
   (kc/delete repairs
              (kc/where {:id id})))
 
 (defn overall []
-  (select users
+  (select (kc/transform users (fn [row] (dissoc row :email)))
+          (kc/fields :name :email)
           (kc/with cars-with-repairs)
           ))

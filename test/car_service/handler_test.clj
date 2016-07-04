@@ -8,7 +8,8 @@
             [ragtime.repl :as repl]
             [environ.core :refer [env]]
             [clojure.java.jdbc :as sql]
-            [cheshire.core :as ch])
+            [cheshire.core :as ch]
+            [clj-time.format :as f])
   (:import [org.postgresql.util PSQLException]))
 
 (def test-db-connection (kdb/postgres {:db (str (:db env) "_test")
@@ -38,6 +39,8 @@
 
 (use-fixtures :once init-db!)
 (use-fixtures :each clear-tables!)
+
+
 
 (def tester {:name "Tester" :email "tester@test.de" :password "passwd"})
 
@@ -99,9 +102,9 @@
               {:id 2, :user "tester@test.de", :brand "KIA", :model "SPORTAGE", :mileage 214, :year 2012, :photo nil}]
              (ch/parse-string (:body (app (mock/request :get "/cars" {:token token}))) true))))
     (testing "repairs resource"
-      (is (= [{:id 1 :car 1 :price 100.0 :service_description "test desc" :date "2011-01-07"}
-              {:id 2 :car 2 :price 100.0 :service_description "test desc" :date "2011-02-08"}
-              {:id 3 :car 2 :price 150.0 :service_description "test desc2" :date "2011-03-08"}]
+      (is (= [{:id 1 :car 1 :price 100.0 :service_description "test desc" :date "2011-01-06" :brand "AUDI" :model "A8"}
+              {:id 2 :car 2 :price 100.0 :service_description "test desc" :date "2011-02-07" :brand "KIA" :model "SPORTAGE"}
+              {:id 3 :car 2 :price 150.0 :service_description "test desc2" :date "2011-03-07" :brand "KIA" :model "SPORTAGE"}]
              (ch/parse-string (:body (app (mock/request :get "/repairs" {:token token}))) true))))
     (testing "not-found route"
       (let [response (app (mock/request :get "/invalid"))]
