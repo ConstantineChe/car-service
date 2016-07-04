@@ -54,7 +54,8 @@
               (if-let [last-dir (-> request :session :dir)] last-dir :ASC)
               (if (#{"ASC" "DESC"} dir) (keyword dir) :ASC))]
     (if email
-      (-> (response (db/get-user-cars email page per-page sort-by dir))
+      (-> (response (db/get-user-cars email page per-page sort-by dir
+                                      repaired-from repaired-to))
           (update :session assoc :sort-by sort-by :dir dir))
       (-> (response {:status "error" :message "invalid token"})
           (status 403)))))

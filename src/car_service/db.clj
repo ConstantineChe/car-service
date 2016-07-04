@@ -79,14 +79,16 @@
   (select users
           (kc/where {:email email})))
 
-(defn get-user-cars [email page per-page order dir]
+(defn get-user-cars [email page per-page order dir from to]
   (let [offset (* per-page (dec page))
         order (if (= order :totalExpenses)
                 (kc/raw "sum(repairs.price)")
-                order)]
+                order)
+        filter (merge {} (if from {:repairs.date [> from]})
+                      (if to {:repairs.date [> to]}))]
     (select cars
             (kc/join repairs (= :repairs.car :id))
-            (kc/where {:user email})
+            (kc/where (merge filter {:user email}))
             (kc/group :id)
             (kc/order order dir)
             (kc/offset offset)
