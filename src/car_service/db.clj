@@ -5,7 +5,8 @@
           [ragtime.repl :as repl]
           [environ.core :refer [env]]
           [clj-time.format :as f]
-          [clj-time.local :as l]))
+          [clj-time.core :as t]
+          [clojure.string :as s]))
 
 
 ;; postgresql database connection
@@ -37,6 +38,11 @@
 
 (def sql-format (f/formatters :year-month-day))
 
+(defn transform-date [date]
+  (let [[year month day] (map #(Integer. %) (s/split (str date) #"-"))]
+         (f/unparse sql-format (t/to-time-zone (t/date-time year month day)
+                                               (t/time-zone-for-offset 2)))))
+
 (declare users cars repairs)
 
 (defentity cars
@@ -64,9 +70,6 @@
   (kc/pk :email)
   (kc/has-many cars-with-repairs {:fk :user})
   (kc/has-many cars {:fk :user}))
-
-(defn transform-date [date]
-  (f/unparse sql-format (l/to-local-date-time date)))
 
 (defn create-user [name email password]
   (insert users

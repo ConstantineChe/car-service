@@ -102,15 +102,15 @@
               {:id 2, :user "tester@test.de", :brand "KIA", :model "SPORTAGE", :mileage 214, :year 2012, :photo nil}]
              (ch/parse-string (:body (app (mock/request :get "/cars" {:token token}))) true)))
       (is (= [{:id 2, :user "tester@test.de", :brand "KIA", :model "SPORTAGE", :mileage 214, :year 2012, :photo nil,
-               :repairs [{:id 2, :car 2, :date "2011-02-07", :price 100.0, :service_description "test desc"}]}]
+               :repairs [{:id 2, :car 2, :date "2011-02-08", :price 100.0, :service_description "test desc"}]}]
              (ch/parse-string (:body (app (mock/request :get "/cars/2" {:token token}))) true))))
     (testing "repairs resource"
-      (is (= [{:id 1 :car 1 :price 100.0 :service_description "test desc" :date "2011-01-06" :brand "AUDI" :model "A8"}
-              {:id 2 :car 2 :price 100.0 :service_description "test desc" :date "2011-02-07" :brand "KIA" :model "SPORTAGE"}
-              {:id 3 :car 2 :price 150.0 :service_description "test desc2" :date "2011-03-07" :brand "KIA" :model "SPORTAGE"}]
+      (is (= [{:id 1 :car 1 :price 100.0 :service_description "test desc" :date "2011-01-07" :brand "AUDI" :model "A8"}
+              {:id 2 :car 2 :price 100.0 :service_description "test desc" :date "2011-02-08" :brand "KIA" :model "SPORTAGE"}
+              {:id 3 :car 2 :price 150.0 :service_description "test desc2" :date "2011-03-08" :brand "KIA" :model "SPORTAGE"}]
              (ch/parse-string (:body (app (mock/request :get "/repairs" {:token token}))) true)))
-      (is (= [{:id 2, :car 2, :date "2011-02-07", :price 100.0, :service_description "test desc"}
-              {:id 3, :car 2, :date "2011-03-07", :price 150.0, :service_description "test desc2"}]
+      (is (= [{:id 2, :car 2, :date "2011-02-08", :price 100.0, :service_description "test desc"}
+              {:id 3, :car 2, :date "2011-03-08", :price 150.0, :service_description "test desc2"}]
              (ch/parse-string (:body (app (mock/request :get "/repairs/2" {:token token}))) true))))
     (testing "not-found route"
       (let [response (app (mock/request :get "/invalid"))]
