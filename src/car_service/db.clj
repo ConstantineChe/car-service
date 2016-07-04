@@ -82,7 +82,7 @@
 (defn get-user-cars [email page per-page order dir]
   (let [offset (* per-page (dec page))
         order (if (= order :totalExpenses)
-                (kc/raw "(sum(repairs.price) OVER (PARTITION BY repairs.car)")
+                (kc/raw "sum(repairs.price)")
                 order)]
     (select cars
             (kc/join repairs (= :repairs.car :id))
