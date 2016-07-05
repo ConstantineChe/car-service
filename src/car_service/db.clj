@@ -1,6 +1,7 @@
 (ns car-service.db
 (:require [korma.db :as kdb]
           [korma.core :as kc :refer [select insert defentity]]
+          [korma.sql.engine :refer [infix]]
           [ragtime.jdbc :as jdbc]
           [ragtime.repl :as repl]
           [environ.core :refer [env]]
@@ -79,13 +80,20 @@
   (select users
           (kc/where {:email email})))
 
+(defn gt [l r]
+  (infix l ">" r))
+
+(defn lt [l r]
+  (infix l "<" r))
+
 (defn get-user-cars [email page per-page order dir from to]
   (let [offset (* per-page (dec page))
         order (if (= order :totalExpenses)
                 (kc/raw "sum(repairs.price)")
                 order)
-        filter (merge {} (if from {:repairs.date [> from]})
-                      (if to {:repairs.date [< to]}))]
+        filter (merge {}
+                      (if from {:repairs.date [gt (kc/raw (str "'" from "'::date"))]})
+                      (if to {:repairs.date [lt (kc/raw (str "'" to "'::date"))]}))]
     (select cars
             (kc/join repairs (= :repairs.car :id))
             (kc/where (merge filter {:user email}))
@@ -107,7 +115,6 @@
              (kc/where {:id id :user email})))
 
 (defn get-repairs [email sort-by dir]
-  (prn sort-by dir)
   (select repairs
           (kc/fields :id :car :date :price :service_description :cars.brand :cars.model)
           (kc/join cars (= :cars.id :car))
@@ -130,7 +137,7 @@
 
 (defn new-repair [repair]
   (insert repairs
-          (kc/values (update repair :date #(kc/raw (str "'" % "'" "::date"))))))
+          (kc/values (update repair :date #(kc/raw (str "'" % "'::date"))))))
 
 (defn delete-repair [id]
   (kc/delete repairs

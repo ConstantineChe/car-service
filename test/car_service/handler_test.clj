@@ -79,7 +79,10 @@
   (testing "test authentication"
     (create-token)
     (let [test-token (get-token)]
-      (is (= (:message (ch/parse-string (:body (app (mock/request :post "/register" tester))) true)) "User already exists."))
+      (is (= (:message (ch/parse-string (:body (app (mock/request :post "/register" tester))) true))
+             "User already exists."))
+      (is (= (:code (ch/parse-string (:body (app (mock/request :post "/register" (dissoc tester :email)))) true))
+             "23502"))
       (is (= (:status (app (mock/request :get "/"))) 403))
       (is (= (:status (app (mock/request :get "/" {:token test-token}))) 200)))))
 
@@ -106,6 +109,9 @@
              (ch/parse-string (:body (app (mock/request :get "/cars" {:token token
                                                                       :sort-by "totalExpenses"
                                                                       :dir "DESC"}))) true)))
+      (is (= [{:id 2, :user "tester@test.de", :brand "KIA", :model "SPORTAGE", :mileage 214, :year 2012, :photo nil}]
+             (ch/parse-string (:body (app (mock/request :get "/cars" {:token token
+                                                                      :repaired-from "2011-03-01"}))) true)))
       (is (= [{:id 2, :user "tester@test.de", :brand "KIA", :model "SPORTAGE", :mileage 214, :year 2012, :photo nil,
                :repairs [{:id 2, :car 2, :date "2011-02-08", :price 100.0, :service_description "test desc"}]}]
              (ch/parse-string (:body (app (mock/request :get "/cars/2" {:token token}))) true))))

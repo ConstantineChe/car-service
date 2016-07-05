@@ -39,8 +39,10 @@
              (response {:status "success"
                         :token (ch/encode (jwt/sign {:user email} secret))}))
          (catch org.postgresql.util.PSQLException e
-           (if (= (.getErrorCode e) 0)
-             (response {:message "User already exists."}))))))
+           (if (and (= (.getErrorCode e) 0)
+                    (= (.getSQLState e) "23505"))
+             (response {:message "User already exists."})
+             (response {:message (.getMessage e) :code (.getSQLState e)}))))))
 
 (defn get-cars [request]
   (let [email (unsign-token request)
