@@ -112,6 +112,10 @@
       (is (= [{:id 2, :user "tester@test.de", :brand "KIA", :model "SPORTAGE", :mileage 214, :year 2012, :photo nil}]
              (ch/parse-string (:body (app (mock/request :get "/cars" {:token token
                                                                       :repaired-from "2011-03-01"}))) true)))
+      (is (= [{:id 1, :user "tester@test.de", :brand "AUDI", :model "A8", :mileage 123, :year 2012, :photo nil}]
+             (ch/parse-string (:body (app (mock/request :get "/cars" {:token token
+                                                                      :repaired-from "2011-01-01"
+                                                                      :repaired-to "2011-01-10"}))) true)))
       (is (= [{:id 2, :user "tester@test.de", :brand "KIA", :model "SPORTAGE", :mileage 214, :year 2012, :photo nil,
                :repairs [{:id 2, :car 2, :date "2011-02-08", :price 100.0, :service_description "test desc"}]}]
              (ch/parse-string (:body (app (mock/request :get "/cars/2" {:token token}))) true))))
