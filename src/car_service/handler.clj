@@ -56,9 +56,11 @@
               (if-let [last-dir (-> request :session :dir)] last-dir :ASC)
               (if (#{"ASC" "DESC"} dir) (keyword dir) :ASC))]
     (if email
-      (-> (response (db/get-user-cars email page per-page sort-by dir
-                                      repaired-from repaired-to))
-          (update :session assoc :sort-by sort-by :dir dir))
+      (try (-> (response (db/get-user-cars email page per-page sort-by dir
+                                           repaired-from repaired-to))
+               (update :session assoc :sort-by sort-by :dir dir))
+           (catch org.postgresql.util.PSQLException e
+             (response {:status "error" :message (.getMessage e) :code (.getSQLState e)})))
       (-> (response {:status "error" :message "invalid token"})
           (status 403)))))
 
@@ -66,7 +68,9 @@
   (let [email (unsign-token request)
         car (select-keys (:params request) [:brand :model :mileage :year :photo])]
     (if email
-      (db/new-car (assoc car :user email))
+      (try (db/new-car (assoc car :user email))
+           (catch org.postgresql.util.PSQLException e
+             (response {:status "error" :message (.getMessage e) :code (.getSQLState e)})))
       (-> (response {:status "error" :message "invalid token"})
           (status 403)))))
 
@@ -74,9 +78,11 @@
   (let [params (:params request)
         email (unsign-token request)]
     (if email
-      (do (db/update-car (:id params) email
-                         (select-keys params [:brand :model :mileage :year :photo]))
-          (response {:status "updated" :id (:id params)}))
+      (try (do (db/update-car (:id params) email
+                              (select-keys params [:brand :model :mileage :year :photo]))
+               (response {:status "updated" :id (:id params)}))
+           (catch org.postgresql.util.PSQLException e
+             (response {:status "error" :message (.getMessage e) :code (.getSQLState e)})))
       (-> (response {:status "error" :message "not authenticated"})
           (status 403)))))
 
@@ -84,7 +90,9 @@
   (let [id (:id (:params request))
         email (unsign-token request)]
     (if email
-      (db/delete-car id email)
+      (try (db/delete-car id email)
+           (catch org.postgresql.util.PSQLException e
+             (response {:status "error" :message (.getMessage e) :code (.getSQLState e)})))
       (-> (response {:status "error" :message "not authenticated"})
           (status 403)))))
 
@@ -94,7 +102,9 @@
         sort-by (if (#{"date" "price"} sort-by) (keyword sort-by) :id)
         dir (if (#{"ASC" "DESC"} dir) (keyword dir) :ASC)]
     (if email
-      (db/get-repairs email sort-by dir)
+      (try (db/get-repairs email sort-by dir)
+           (catch org.postgresql.util.PSQLException e
+             (response {:status "error" :message (.getMessage e) :code (.getSQLState e)})))
       (-> (response {:status "error" :message "not authenticated"})
           (status 403)))    ))
 
@@ -102,7 +112,9 @@
   (let [email (unsign-token request)
         repair (select-keys (:params request) [:car :date :price :service_description])]
     (if email
-      (db/new-repair repair)
+      (try (db/new-repair repair)
+           (catch org.postgresql.util.PSQLException e
+             (response {:status "error" :message (.getMessage e) :code (.getSQLState e)})))
       (-> (response {:status "error" :message "invalid token"})
           (status 403)))))
 
@@ -110,7 +122,9 @@
   (let [id (:id (:params request))
         email (unsign-token request)]
     (if email
-      (db/delete-repair id)
+      (try (db/delete-repair id)
+           (catch org.postgresql.util.PSQLException e
+             (response {:status "error" :message (.getMessage e) :code (.getSQLState e)})))
       (-> (response {:status "error" :message "not authenticated"})
           (status 403)))))
 
