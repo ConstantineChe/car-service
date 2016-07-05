@@ -85,7 +85,7 @@
                 (kc/raw "sum(repairs.price)")
                 order)
         filter (merge {} (if from {:repairs.date [> from]})
-                      (if to {:repairs.date [> to]}))]
+                      (if to {:repairs.date [< to]}))]
     (select cars
             (kc/join repairs (= :repairs.car :id))
             (kc/where (merge filter {:user email}))
